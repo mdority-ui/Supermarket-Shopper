@@ -1,0 +1,750 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Supermarket Shopper: Math Quest</title>
+    <style>
+        :root { --primary: #4CAF50; --bg: #f4f4f9; --text: #333; }
+        body { font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; background: var(--bg); color: var(--text); margin: 0; padding: 20px; display: flex; flex-direction: column; align-items: center; user-select: none; }
+        h1 { margin-top: 0; color: #2e7d32; }
+        
+        /* --- SCREENS --- */
+        #start-screen, #game-screen { display: flex; flex-direction: column; align-items: center; width: 100%; max-width: 1250px; }
+        #game-screen { display: none; flex-direction: row; gap: 20px; align-items: flex-start; justify-content: center;}
+        
+        /* --- START SCREEN --- */
+        .char-select { display: flex; gap: 15px; margin: 20px 0; }
+        .char-btn { font-size: 3rem; background: white; border: 3px solid #ccc; border-radius: 15px; padding: 10px; cursor: pointer; transition: all 0.2s; }
+        .char-btn:hover { transform: scale(1.1); border-color: var(--primary); }
+        .char-btn.selected { border-color: var(--primary); background: #e8f4e9; transform: scale(1.1); }
+        .start-btn { background: var(--primary); color: white; border: none; padding: 15px 30px; font-size: 1.5rem; border-radius: 10px; cursor: pointer; font-weight: bold; margin-top: 20px; box-shadow: 0 4px 6px rgba(0,0,0,0.2); }
+        .start-btn:hover { background: #388E3C; transform: translateY(-2px); }
+
+        /* --- GAME UI PANELS --- */
+        #left-panel { flex: 1; display: flex; flex-direction: column; gap: 15px; width: 100%; max-width: 280px; }
+        #right-column { display: flex; flex-direction: column; gap: 15px; }
+        #right-panel { flex: 1; display: flex; flex-direction: column; gap: 15px; width: 100%; max-width: 280px; }
+
+        .ui-box { background: white; border-radius: 10px; padding: 20px; box-shadow: 0 4px 8px rgba(0,0,0,0.1); }
+        .ui-box h2 { margin-top: 0; border-bottom: 2px solid #eee; padding-bottom: 10px; color: #2196F3; }
+        .ui-box h2.stats-title { color: #9c27b0; }
+        
+        .list-item { font-size: 1.1rem; margin-bottom: 10px; display: flex; justify-content: space-between; align-items: center; padding: 8px; border-radius: 5px; background: #f9f9f9; border: 1px solid #ddd; }
+        .list-item.found { background: #e8f4e9; color: #aaa; text-decoration: line-through; border-color: var(--primary); }
+        .list-item.found::after { content: '✅'; text-decoration: none; }
+
+        #status-msg { font-size: 1.1rem; font-weight: bold; color: #d32f2f; min-height: 50px; text-align: center; padding: 10px; background: white; border-radius: 10px; box-shadow: 0 4px 8px rgba(0,0,0,0.1); display: flex; align-items: center; justify-content: center;}
+
+        /* --- STATS STYLING --- */
+        .stat-row { display: flex; justify-content: space-between; align-items: center; padding: 8px 0; border-bottom: 1px dashed #eee; font-size: 1.05rem; }
+        .stat-row:last-child { border-bottom: none; }
+        .stat-label { font-weight: bold; color: #555; }
+        .stat-value { font-family: monospace; font-size: 1.2rem; font-weight: bold; color: #333; background: #f4f4f4; padding: 2px 8px; border-radius: 4px;}
+        .stat-value.good { color: #2e7d32; background: #e8f4e9;}
+        .reset-stats-btn { background: #e0e0e0; color: #333; border: none; padding: 10px; font-size: 0.95rem; border-radius: 5px; cursor: pointer; font-weight: bold; width: 100%; margin-top: 15px; transition: background 0.2s; box-shadow: 0 2px 4px rgba(0,0,0,0.1); }
+        .reset-stats-btn:hover { background: #ccc; }
+
+        /* --- BOTTOM CONTROL PANEL --- */
+        #bottom-panel { display: flex; flex-direction: row; justify-content: space-between; align-items: center; padding: 15px 25px; gap: 15px; }
+        .panel-section { display: flex; flex-direction: column; gap: 10px; }
+        
+        .controls { display: grid; grid-template-columns: repeat(3, 40px); grid-template-rows: repeat(2, 40px); gap: 5px; margin: 0 auto; }
+        .ctrl-btn { background: #e0e0e0; border: 2px solid #bdbdbd; border-radius: 8px; display: flex; justify-content: center; align-items: center; font-size: 1.2rem; cursor: pointer; font-weight: bold;}
+        .ctrl-btn:active { background: #ccc; }
+        .ctrl-btn.up { grid-column: 2; grid-row: 1; }
+        .ctrl-btn.left { grid-column: 1; grid-row: 2; }
+        .ctrl-btn.down { grid-column: 2; grid-row: 2; }
+        .ctrl-btn.right { grid-column: 3; grid-row: 2; }
+        
+        .settings-row { display: flex; align-items: center; justify-content: space-between; gap: 10px; }
+        .settings-row label { font-weight: bold; color: #555; font-size: 1rem; width: 80px; }
+        
+        .diff-container { display: flex; gap: 5px; flex: 1; }
+        .diff-btn { flex: 1; padding: 6px; font-size: 0.9rem; font-weight: bold; border: 2px solid #ccc; background: #f9f9f9; cursor: pointer; border-radius: 5px; color: #555; transition: all 0.2s;}
+        .diff-btn:hover { background: #eee; }
+        .diff-btn.active { background: #2196F3; color: white; border-color: #1976D2; }
+        
+        select#list-size-select { flex: 1; padding: 6px; border-radius: 5px; border: 2px solid #ccc; font-weight: bold; color: #333; outline: none; cursor: pointer; font-size: 0.95rem; }
+
+        .actions-wrapper { width: 150px; }
+        .actions-wrapper button { padding: 8px; font-size: 1rem; border-radius: 8px; cursor: pointer; font-weight: bold; width: 100%; border: none; transition: background 0.2s; box-shadow: 0 2px 4px rgba(0,0,0,0.2); color: white;}
+        .reset-btn { background: #ff9800; }
+        .reset-btn:hover { background: #f57c00; }
+        .change-char-btn { background: #9c27b0; }
+        .change-char-btn:hover { background: #7b1fa2; }
+
+        /* --- STORE MAP --- */
+        #store-map {
+            width: 600px; height: 350px; background: #fafafa; border: 4px solid #795548; border-radius: 10px;
+            display: grid; grid-template-columns: repeat(12, 1fr); grid-template-rows: repeat(7, 1fr);
+            position: relative; box-shadow: 0 8px 16px rgba(0,0,0,0.2); flex-shrink: 0;
+        }
+        .grid-cell { display: flex; justify-content: center; align-items: center; background-color: #fafafa; background-image: radial-gradient(circle, #ececec 3px, transparent 4px); background-size: 20px 20px; font-size: 1.8rem; position: relative; }
+        
+        .wall { background: #8d6e63; border: 2px solid #5d4037; box-sizing: border-box; }
+        .shelf { background-color: #ffcc80; border: 3px solid #ef6c00; border-radius: 4px; box-shadow: inset 1px 1px 3px rgba(0,0,0,0.2); box-sizing: border-box; cursor: help; }
+        .register-cell { background: #607D8B; border: 3px solid #455A64; border-radius: 5px; box-sizing: border-box; color: white; font-size: 1.2rem; font-weight: bold; text-align: center; line-height: 1.1; }
+        .entrance-cell { background: #a5d6a7; border: 2px dashed #2e7d32; box-sizing: border-box; font-size: 1rem; color: #1b5e20; font-weight: bold; }
+
+        .player-sprite { position: absolute; width: 50px; height: 50px; display: flex; justify-content: center; align-items: center; font-size: 2.2rem; z-index: 10; transition: all 0.15s ease; filter: drop-shadow(0 3px 3px rgba(0,0,0,0.3)); }
+
+        /* --- MODAL (Payment Math) --- */
+        #checkout-modal { display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.8); justify-content: center; align-items: center; z-index: 100; }
+        
+        .modal-content { background: white; padding: 25px 25px 15px 25px; border-radius: 15px; width: 90%; max-width: 650px; text-align: center; display: flex; flex-direction: column; position: relative; box-shadow: 0 10px 25px rgba(0,0,0,0.5); max-height: 90vh; }
+        
+        .close-btn { position: absolute; top: 15px; right: 20px; font-size: 2rem; font-weight: bold; color: #888; cursor: pointer; transition: color 0.2s; z-index: 10; line-height: 1; }
+        .close-btn:hover { color: #f44336; }
+
+        .modal-scroll-area { overflow-y: auto; flex: 1; padding-right: 5px; margin-bottom: 15px; }
+
+        .register-screen { background-color: #111; color: #0f0; font-family: 'Courier New', Courier, monospace; padding: 15px; border-radius: 8px; border: 6px solid #333; box-shadow: inset 0 0 15px rgba(0, 0, 0, 0.8); text-align: center; margin-bottom: 15px; }
+        .reg-item { font-size: 1.5rem; margin-bottom: 5px; color: #0a0; }
+        .reg-total { font-size: 3rem; font-weight: bold; text-shadow: 0 0 10px #0f0; margin: 0; }
+
+        .tray-header-row { display: flex; justify-content: space-between; align-items: flex-end; margin: 10px 0 5px 0; }
+        .tray-heading { font-size: 1.2rem; font-weight: bold; color: var(--primary); margin: 0; }
+        #clear-btn { background: #ff9800; color: white; padding: 8px 15px; font-size: 1rem; border: none; border-radius: 5px; font-weight: bold; cursor: pointer; }
+        #clear-btn:hover { background: #e65100; }
+        
+        #tray-area { display: flex; flex-wrap: wrap; gap: 15px; justify-content: center; align-items: center; margin-bottom: 15px; border: 3px dashed #4CAF50; padding: 15px; border-radius: 10px; background: #f1f8e9; min-height: 80px; }
+        #tray-area:empty::before { content: 'Click money below to build the exact amount!'; color: #81c784; font-weight: bold; font-size: 1.2rem; }
+        
+        /* Money Visuals */
+        .money-section { display: flex; flex-direction: column; gap: 15px; padding: 15px; background: #eceff1; border-radius: 10px; }
+        
+        .bills-container { display: flex; justify-content: center; gap: 8px; flex-wrap: nowrap; width: 100%; }
+        
+        .money-bill { flex: 1; max-width: 120px; height: 45px; cursor: pointer; border-radius: 3px; box-shadow: 2px 2px 5px rgba(0,0,0,0.3); transition: transform 0.1s; background: #e8f4e9; border: 2px solid #2e7d32; display: flex; justify-content: space-between; align-items: center; padding: 0 4px; position: relative; }
+        .money-bill:active { transform: scale(0.95); }
+        .money-bill:hover { filter: brightness(1.05); transform: scale(1.05); }
+        .money-bill::before { content: ''; position: absolute; top: 2px; left: 2px; right: 2px; bottom: 2px; border: 1px dashed #4caf50; pointer-events: none; }
+        .bill-corner { font-family: serif; font-weight: bold; color: #1b5e20; font-size: 0.85rem; pointer-events: none; }
+        .bill-center { width: 30px; height: 34px; border-radius: 50%; border: 2px solid #2e7d32; background: #c8e6c9; display: flex; justify-content: center; align-items: center; font-family: serif; font-size: 1.1rem; font-weight: bold; color: #1b5e20; pointer-events: none; background-image: radial-gradient(#e8f4e9 20%, #c8e6c9 100%); }
+        
+        .coins-container { display: flex; justify-content: center; gap: 15px; flex-wrap: wrap; }
+        .money-coin { position: relative; border-radius: 50%; cursor: pointer; transition: transform 0.1s; display: flex; justify-content: center; align-items: center; font-family: sans-serif; font-weight: bold; line-height: 1; }
+        .money-coin:active { transform: scale(0.95); }
+        .money-coin:hover { filter: brightness(1.1); transform: scale(1.05); }
+        .money-coin * { pointer-events: none; }
+        .silver-coin { background: radial-gradient(ellipse at center, #f5f5f5 0%, #b0b0b0 100%); border: 2px solid #9e9e9e; box-shadow: inset 0 0 8px rgba(255,255,255,0.8), 2px 2px 5px rgba(0,0,0,0.4); color: #555; }
+        .copper-coin { background: radial-gradient(ellipse at center, #e8a382 0%, #9c4b22 100%); border: 2px solid #8a411c; box-shadow: inset 0 0 8px rgba(255,200,180,0.5), 2px 2px 5px rgba(0,0,0,0.4); color: #4a1d05; }
+        .quarter { width: 70px; height: 70px; font-size: 1.4rem; }
+        .dime { width: 50px; height: 50px; font-size: 1rem; }
+        .nickel { width: 60px; height: 60px; font-size: 1.1rem; }
+        .penny { width: 55px; height: 55px; font-size: 1rem; }
+
+        /* The red X badge for items inside the tray */
+        .remove-x { position: absolute; top: -6px; right: -6px; background: #f44336; color: white; border-radius: 50%; width: 20px; height: 20px; display: flex; justify-content: center; align-items: center; font-size: 12px; font-weight: bold; border: 2px solid white; box-shadow: 0 2px 4px rgba(0,0,0,0.3); pointer-events: none; z-index: 10; }
+        
+        .submit-btn { background: #2196F3; color: white; padding: 15px; font-size: 1.5rem; cursor: pointer; border: none; border-radius: 8px; font-weight: bold; width: 100%; transition: background 0.2s; flex-shrink: 0; }
+        .submit-btn:hover { background: #1976D2; }
+        
+        #hint-text { color: #f44336; font-weight: bold; min-height: 25px; margin-bottom: 5px; font-size: 1.2rem; }
+        
+        /* Win Screen */
+        #win-screen { display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: var(--primary); color: white; justify-content: center; align-items: center; flex-direction: column; z-index: 200; font-size: 2rem; text-align: center; }
+        .win-stats { background: white; color: #333; padding: 25px; border-radius: 10px; margin: 25px 0; font-size: 1.2rem; text-align: left; box-shadow: 0 8px 16px rgba(0,0,0,0.3); min-width: 300px;}
+        .win-stat-row { display: flex; justify-content: space-between; gap: 40px; margin-bottom: 12px; border-bottom: 1px dashed #ccc; padding-bottom: 8px; }
+        .win-stat-row:last-child { margin-bottom: 0; border-bottom: none; padding-bottom: 0; }
+        .win-stat-row strong { color: var(--primary); font-family: monospace; font-size: 1.4rem;}
+        .win-btn { margin-top: 10px; padding: 15px 30px; font-size: 1.5rem; color: var(--primary); background: white; border: none; border-radius: 10px; cursor: pointer; font-weight: bold; box-shadow: 0 4px 6px rgba(0,0,0,0.2); transition: transform 0.2s;}
+        .win-btn:hover { transform: scale(1.05); }
+    </style>
+</head>
+<body>
+
+    <div id="start-screen">
+        <h1>🛒 Supermarket Shopper!</h1>
+        <h2>1. Choose your shopper:</h2>
+        <div class="char-select">
+            <div class="char-btn selected" onclick="selectChar(this, '👦🏽')">👦🏽</div>
+            <div class="char-btn" onclick="selectChar(this, '👧🏻')">👧🏻</div>
+            <div class="char-btn" onclick="selectChar(this, '🐶')">🐶</div>
+            <div class="char-btn" onclick="selectChar(this, '🤖')">🤖</div>
+            <div class="char-btn" onclick="selectChar(this, '👽')">👽</div>
+        </div>
+        <button class="start-btn" onclick="startGame()">Start Shopping!</button>
+    </div>
+
+    <div id="game-screen">
+        <div id="left-panel">
+            <div class="ui-box" style="flex: 1;">
+                <h2>📝 Shopping List</h2>
+                <div id="shopping-list-container"></div>
+            </div>
+            <div id="status-msg">Welcome to the store! Find the items on your list.</div>
+        </div>
+
+        <div id="right-column">
+            
+            <div id="store-map"></div>
+            
+            <div id="bottom-panel" class="ui-box">
+                <div class="panel-section">
+                    <div class="controls">
+                        <div class="ctrl-btn up" onclick="movePlayer(0, -1)">⬆️</div>
+                        <div class="ctrl-btn left" onclick="movePlayer(-1, 0)">⬅️</div>
+                        <div class="ctrl-btn down" onclick="movePlayer(0, 1)">⬇️</div>
+                        <div class="ctrl-btn right" onclick="movePlayer(1, 0)">➡️</div>
+                    </div>
+                    <div style="font-size:0.75rem; text-align:center; color:#666; font-weight:bold;">Move</div>
+                </div>
+
+                <div class="panel-section" style="flex:1; max-width: 250px;">
+                    <div class="settings-row">
+                        <label>Difficulty:</label>
+                        <div class="diff-container">
+                            <button class="diff-btn active" onclick="setDifficulty('easy', this)">Easy</button>
+                            <button class="diff-btn" onclick="setDifficulty('medium', this)">Med</button>
+                            <button class="diff-btn" onclick="setDifficulty('hard', this)">Hard</button>
+                        </div>
+                    </div>
+                    <div class="settings-row">
+                        <label>List Size:</label>
+                        <select id="list-size-select" onchange="changeListSize(this.value)">
+                            <option value="1">1 Item</option>
+                            <option value="2">2 Items</option>
+                            <option value="3" selected>3 Items</option>
+                            <option value="4">4 Items</option>
+                            <option value="5">5 Items</option>
+                            <option value="6">6 Items</option>
+                            <option value="7">7 Items</option>
+                            <option value="8">8 Items</option>
+                            <option value="9">9 Items</option>
+                            <option value="10">10 Items</option>
+                        </select>
+                    </div>
+                </div>
+
+                <div class="panel-section actions-wrapper">
+                    <button class="reset-btn" onclick="resetGame()">🔄 New List</button>
+                    <button class="change-char-btn" onclick="changeCharacter()">👤 Change Char</button>
+                </div>
+            </div>
+
+        </div>
+
+        <div id="right-panel">
+            <div class="ui-box" style="flex: 1;">
+                <h2 class="stats-title">📊 Tracking & Stats</h2>
+                
+                <div class="stat-row">
+                    <span class="stat-label">Correct Pays:</span>
+                    <span class="stat-value good" id="stat-correct">0</span>
+                </div>
+                <div class="stat-row">
+                    <span class="stat-label">Accuracy:</span>
+                    <span class="stat-value" id="stat-accuracy">0%</span>
+                </div>
+                <div class="stat-row" title="Items paid for perfectly on the very first try!">
+                    <span class="stat-label">Perfect 1st Tries:</span>
+                    <span class="stat-value" id="stat-perfect">0</span>
+                </div>
+                <div class="stat-row">
+                    <span class="stat-label">Lists Completed:</span>
+                    <span class="stat-value" id="stat-lists">0</span>
+                </div>
+                <div class="stat-row">
+                    <span class="stat-label">Money Handled:</span>
+                    <span class="stat-value" id="stat-money">$0.00</span>
+                </div>
+
+                <button class="reset-stats-btn" onclick="resetStats()">Reset All Stats to Zero</button>
+            </div>
+        </div>
+    </div>
+
+    <div id="checkout-modal">
+        <div class="modal-content">
+            <span class="close-btn" onclick="closeModal()" title="Close without answering">&times;</span>
+            
+            <div class="modal-scroll-area">
+                <div class="register-screen">
+                    <div class="reg-item" id="reg-item">ITEM: 🍎 Apple</div>
+                    <div class="reg-total" id="reg-total">$0.45</div>
+                </div>
+                
+                <div id="hint-text"></div>
+                
+                <div class="tray-header-row">
+                    <div class="tray-heading">Your Tray:</div>
+                    <button id="clear-btn" onclick="clearTray()">Clear Tray</button>
+                </div>
+                <div id="tray-area"></div>
+                
+                <div class="money-section">
+                    <div class="bills-container">
+                        <div class="money-bill" onclick="addMoney(2000)" title="$20"><span class="bill-corner">20</span><div class="bill-center">20</div><span class="bill-corner">20</span></div>
+                        <div class="money-bill" onclick="addMoney(1000)" title="$10"><span class="bill-corner">10</span><div class="bill-center">10</div><span class="bill-corner">10</span></div>
+                        <div class="money-bill" onclick="addMoney(500)" title="$5"><span class="bill-corner">5</span><div class="bill-center">5</div><span class="bill-corner">5</span></div>
+                        <div class="money-bill" onclick="addMoney(100)" title="$1"><span class="bill-corner">1</span><div class="bill-center">1</div><span class="bill-corner">1</span></div>
+                    </div>
+                    <div class="coins-container">
+                        <div class="money-coin silver-coin quarter" onclick="addMoney(25)" title="25¢">25¢</div>
+                        <div class="money-coin silver-coin dime" onclick="addMoney(10)" title="10¢">10¢</div>
+                        <div class="money-coin silver-coin nickel" onclick="addMoney(5)" title="5¢">5¢</div>
+                        <div class="money-coin copper-coin penny" onclick="addMoney(1)" title="1¢">1¢</div>
+                    </div>
+                </div>
+            </div>
+            
+            <button class="submit-btn" onclick="submitMoney()">Pay Amount</button>
+
+        </div>
+    </div>
+
+    <div id="win-screen">
+        <h1>🎉 Shopping Complete! 🎉</h1>
+        <p>You paid for everything correctly. Great job!</p>
+        
+        <div class="win-stats" id="win-stats-display">
+            </div>
+
+        <button class="win-btn" onclick="resetAndCloseWinScreen()">Play Again</button>
+    </div>
+
+    <script>
+        // Game Data (24 items with dynamic price ranges in cents)
+        const allItems = [
+            { id: 'apple', name: 'Apple', emoji: '🍎', minPrice: 25, maxPrice: 85 },
+            { id: 'banana', name: 'Banana', emoji: '🍌', minPrice: 20, maxPrice: 60 },
+            { id: 'grapes', name: 'Grapes', emoji: '🍇', minPrice: 80, maxPrice: 150 },
+            { id: 'melon', name: 'Watermelon', emoji: '🍉', minPrice: 250, maxPrice: 500 },
+            { id: 'carrot', name: 'Carrot', emoji: '🥕', minPrice: 40, maxPrice: 90 },
+            { id: 'broccoli', name: 'Broccoli', emoji: '🥦', minPrice: 60, maxPrice: 120 },
+            { id: 'onion', name: 'Onion', emoji: '🧅', minPrice: 30, maxPrice: 70 },
+            { id: 'potato', name: 'Potato', emoji: '🥔', minPrice: 25, maxPrice: 100 },
+            { id: 'milk', name: 'Milk', emoji: '🥛', minPrice: 120, maxPrice: 250 },
+            { id: 'cheese', name: 'Cheese', emoji: '🧀', minPrice: 250, maxPrice: 450 },
+            { id: 'butter', name: 'Butter', emoji: '🧈', minPrice: 150, maxPrice: 300 },
+            { id: 'eggs', name: 'Eggs', emoji: '🥚', minPrice: 200, maxPrice: 350 },
+            { id: 'bread', name: 'Bread', emoji: '🍞', minPrice: 150, maxPrice: 300 },
+            { id: 'croissant', name: 'Croissant', emoji: '🥐', minPrice: 100, maxPrice: 200 },
+            { id: 'chicken', name: 'Chicken', emoji: '🍗', minPrice: 350, maxPrice: 600 },
+            { id: 'fish', name: 'Fish', emoji: '🐟', minPrice: 400, maxPrice: 700 },
+            { id: 'pizza', name: 'Pizza', emoji: '🍕', minPrice: 450, maxPrice: 800 },
+            { id: 'cereal', name: 'Cereal', emoji: '🥣', minPrice: 300, maxPrice: 500 },
+            { id: 'water', name: 'Water', emoji: '💧', minPrice: 75, maxPrice: 150 },
+            { id: 'juice', name: 'Juice', emoji: '🧃', minPrice: 100, maxPrice: 200 },
+            { id: 'cookie', name: 'Cookies', emoji: '🍪', minPrice: 150, maxPrice: 300 },
+            { id: 'icecream', name: 'Ice Cream', emoji: '🍦', minPrice: 250, maxPrice: 450 },
+            { id: 'candy', name: 'Candy', emoji: '🍬', minPrice: 50, maxPrice: 150 },
+            { id: 'soap', name: 'Soap', emoji: '🧼', minPrice: 100, maxPrice: 250 }
+        ];
+
+        // State Variables
+        let playerEmoji = '👦🏽';
+        let currentDifficulty = 'easy';
+        let currentListSize = 3;
+        
+        let gridSizeX = 12; 
+        let gridSizeY = 7; 
+        
+        let mapGrid = [];
+        let playerPos = { x: 0, y: 6 }; 
+        
+        let currentGameItems = []; 
+        let shoppingList = [];
+        let inventory = [];
+        
+        let currentTargetItem = null;
+        let targetAmount = 0;
+        let trayAmount = 0;
+        let strikes = 0;
+        let isCheckoutMode = false;
+
+        // Tracking Metrics
+        let stats = {
+            correctPays: 0,
+            wrongPays: 0, // Still tracked internally for accuracy calculation
+            perfect1stTries: 0,
+            listsCompleted: 0,
+            totalMoneyHandled: 0
+        };
+
+        function formatMoney(cents) {
+            return '$' + (cents / 100).toFixed(2);
+        }
+
+        function updateStatsUI() {
+            document.getElementById('stat-correct').innerText = stats.correctPays;
+            document.getElementById('stat-perfect').innerText = stats.perfect1stTries;
+            document.getElementById('stat-lists').innerText = stats.listsCompleted;
+            document.getElementById('stat-money').innerText = formatMoney(stats.totalMoneyHandled);
+            
+            let totalAttempts = stats.correctPays + stats.wrongPays;
+            let acc = totalAttempts === 0 ? 0 : Math.round((stats.correctPays / totalAttempts) * 100);
+            document.getElementById('stat-accuracy').innerText = acc + "%";
+        }
+
+        function resetStats() {
+            stats = { correctPays: 0, wrongPays: 0, perfect1stTries: 0, listsCompleted: 0, totalMoneyHandled: 0 };
+            updateStatsUI();
+        }
+
+        function getSingleMoneyVisual(val) {
+            const xBadge = `<div class="remove-x">✖</div>`;
+            if (val === 2000) return `<div class="money-bill" onclick="removeMoney(this, 2000)" title="Remove $20">${xBadge}<span class="bill-corner">20</span><div class="bill-center">20</div><span class="bill-corner">20</span></div>`;
+            if (val === 1000) return `<div class="money-bill" onclick="removeMoney(this, 1000)" title="Remove $10">${xBadge}<span class="bill-corner">10</span><div class="bill-center">10</div><span class="bill-corner">10</span></div>`;
+            if (val === 500) return `<div class="money-bill" onclick="removeMoney(this, 500)" title="Remove $5">${xBadge}<span class="bill-corner">5</span><div class="bill-center">5</div><span class="bill-corner">5</span></div>`;
+            if (val === 100) return `<div class="money-bill" onclick="removeMoney(this, 100)" title="Remove $1">${xBadge}<span class="bill-corner">1</span><div class="bill-center">1</div><span class="bill-corner">1</span></div>`;
+            if (val === 25) return `<div class="money-coin silver-coin quarter" onclick="removeMoney(this, 25)" title="Remove 25¢">${xBadge}25¢</div>`;
+            if (val === 10) return `<div class="money-coin silver-coin dime" onclick="removeMoney(this, 10)" title="Remove 10¢">${xBadge}10¢</div>`;
+            if (val === 5) return `<div class="money-coin silver-coin nickel" onclick="removeMoney(this, 5)" title="Remove 5¢">${xBadge}5¢</div>`;
+            if (val === 1) return `<div class="money-coin copper-coin penny" onclick="removeMoney(this, 1)" title="Remove 1¢">${xBadge}1¢</div>`;
+            return '';
+        }
+
+        function selectChar(element, emoji) {
+            document.querySelectorAll('.char-btn').forEach(btn => btn.classList.remove('selected'));
+            element.classList.add('selected');
+            playerEmoji = emoji;
+        }
+
+        function changeCharacter() {
+            document.getElementById('game-screen').style.display = 'none';
+            document.getElementById('start-screen').style.display = 'flex';
+        }
+        
+        function setDifficulty(diff, btnElement) {
+            currentDifficulty = diff;
+            document.querySelectorAll('.diff-btn').forEach(btn => btn.classList.remove('active'));
+            btnElement.classList.add('active');
+            btnElement.blur(); 
+            resetGame();
+        }
+
+        function changeListSize(size) {
+            currentListSize = parseInt(size);
+            document.getElementById('list-size-select').blur(); 
+            resetGame();
+        }
+
+        function startGame() {
+            document.getElementById('start-screen').style.display = 'none';
+            document.getElementById('game-screen').style.display = 'flex';
+            resetGame(); 
+        }
+
+        function resetGame() {
+            playerPos = { x: 0, y: 6 }; 
+            inventory = [];
+            shoppingList = [];
+            trayAmount = 0;
+            strikes = 0;
+            currentTargetItem = null;
+            isCheckoutMode = false;
+            
+            // Assign random prices based on Difficulty Rules
+            currentGameItems = allItems.map(item => {
+                let min = item.minPrice;
+                let max = item.maxPrice;
+                let randomPrice = min;
+                
+                if (currentDifficulty === 'hard') {
+                    randomPrice = Math.floor(Math.random() * (max - min + 1)) + min;
+                } else if (currentDifficulty === 'medium') {
+                    let min5 = Math.ceil(min / 5) * 5;
+                    let max5 = Math.floor(max / 5) * 5;
+                    let steps = (max5 - min5) / 5;
+                    
+                    if (steps < 0) {
+                        randomPrice = Math.round(((min + max)/2) / 5) * 5;
+                    } else {
+                        randomPrice = min5 + (Math.floor(Math.random() * (steps + 1)) * 5);
+                    }
+                } else if (currentDifficulty === 'easy') {
+                    let min25 = Math.ceil(min / 25) * 25;
+                    let max25 = Math.floor(max / 25) * 25;
+                    let steps = (max25 - min25) / 25;
+                    
+                    if (steps < 0) {
+                        let mid = (min + max) / 2;
+                        randomPrice = Math.round(mid / 25) * 25;
+                        if (randomPrice === 0) randomPrice = 25; 
+                    } else {
+                        randomPrice = min25 + (Math.floor(Math.random() * (steps + 1)) * 25);
+                    }
+                }
+                
+                return { ...item, currentPrice: randomPrice };
+            });
+
+            // Generate Random List matching the size selected
+            let shuffled = [...currentGameItems].sort(() => 0.5 - Math.random());
+            shoppingList = shuffled.slice(0, currentListSize);
+            
+            generateMap();
+            updateListUI();
+            drawMap();
+            setStatus(`Store refreshed! Find the ${currentListSize} items on your list.`, "#2e7d32");
+        }
+
+        function resetAndCloseWinScreen() {
+            document.getElementById('win-screen').style.display = "none";
+            resetGame();
+        }
+
+        function updateListUI() {
+            const listDiv = document.getElementById('shopping-list-container');
+            listDiv.innerHTML = '';
+            
+            shoppingList.forEach(item => {
+                const isFound = inventory.includes(item.id);
+                listDiv.innerHTML += `
+                    <div class="list-item ${isFound ? 'found' : ''}">
+                        <span>${item.emoji} ${item.name}</span>
+                        <span>${formatMoney(item.currentPrice)}</span>
+                    </div>
+                `;
+            });
+        }
+
+        function setStatus(msg, color = "#d32f2f") {
+            const statusEl = document.getElementById('status-msg');
+            statusEl.innerText = msg;
+            statusEl.style.color = color;
+        }
+
+        function generateMap() {
+            // 0: floor, 1: shelf, 2: register, 3: entrance
+            for (let y = 0; y < gridSizeY; y++) {
+                mapGrid[y] = [];
+                for (let x = 0; x < gridSizeX; x++) {
+                    mapGrid[y][x] = { type: 0, item: null };
+                }
+            }
+
+            // Set Entrance (Bottom-Left) & Register (Bottom-Right)
+            mapGrid[6][0] = { type: 3 }; 
+            mapGrid[6][11] = { type: 2 }; 
+
+            const shelfCoords = [];
+            [1, 5, 9].forEach(startX => {
+                for (let x = startX; x <= startX + 1; x++) {
+                    for (let y = 1; y <= 4; y++) { 
+                        shelfCoords.push({x: x, y: y});
+                    }
+                }
+            });
+
+            // Shuffle coordinates so items are placed randomly
+            let shuffledCoords = [...shelfCoords].sort(() => 0.5 - Math.random());
+            
+            currentGameItems.forEach((item, i) => {
+                let coord = shuffledCoords[i];
+                mapGrid[coord.y][coord.x] = { type: 1, item: item };
+            });
+        }
+
+        function drawMap() {
+            const mapEl = document.getElementById('store-map');
+            mapEl.innerHTML = '';
+
+            for (let y = 0; y < gridSizeY; y++) {
+                for (let x = 0; x < gridSizeX; x++) {
+                    const cellData = mapGrid[y][x];
+                    const cell = document.createElement('div');
+                    cell.className = 'grid-cell';
+
+                    if (cellData.type === 1) {
+                        cell.classList.add('shelf');
+                        if (cellData.item) {
+                            cell.innerHTML = cellData.item.emoji;
+                            if (inventory.includes(cellData.item.id)) {
+                                cell.style.opacity = '0.3'; 
+                            }
+                        }
+                    } else if (cellData.type === 2) {
+                        cell.classList.add('register-cell');
+                        cell.innerHTML = "PAY";
+                    } else if (cellData.type === 3) {
+                        cell.classList.add('entrance-cell');
+                        cell.innerHTML = "IN";
+                    }
+
+                    mapEl.appendChild(cell);
+                }
+            }
+
+            const playerSprite = document.createElement('div');
+            playerSprite.className = 'player-sprite';
+            playerSprite.innerHTML = playerEmoji;
+            
+            playerSprite.style.left = (playerPos.x * 50) + 'px';
+            playerSprite.style.top = (playerPos.y * 50) + 'px';
+            
+            mapEl.appendChild(playerSprite);
+        }
+
+        window.addEventListener('keydown', (e) => {
+            if (document.getElementById('checkout-modal').style.display === 'flex') return;
+            if (document.getElementById('start-screen').style.display !== 'none') return;
+
+            // Only act if the user pressed a movement key
+            if (['ArrowUp', 'ArrowDown', 'ArrowLeft', 'ArrowRight', 'w', 'a', 's', 'd'].includes(e.key)) {
+                
+                e.preventDefault(); 
+                
+                if (e.key === 'ArrowUp' || e.key === 'w') movePlayer(0, -1);
+                if (e.key === 'ArrowDown' || e.key === 's') movePlayer(0, 1);
+                if (e.key === 'ArrowLeft' || e.key === 'a') movePlayer(-1, 0);
+                if (e.key === 'ArrowRight' || e.key === 'd') movePlayer(1, 0);
+            }
+        });
+
+        function movePlayer(dx, dy) {
+            let newX = playerPos.x + dx;
+            let newY = playerPos.y + dy;
+
+            if (newX < 0 || newX >= gridSizeX || newY < 0 || newY >= gridSizeY) return;
+
+            const targetCell = mapGrid[newY][newX];
+
+            if (targetCell.type === 1) {
+                handleShelfInteraction(targetCell.item);
+                return; 
+            }
+
+            if (targetCell.type === 2) {
+                handleRegisterInteraction();
+                return; 
+            }
+
+            playerPos.x = newX;
+            playerPos.y = newY;
+            drawMap();
+            setStatus("Looking for items...", "#666");
+        }
+
+        function handleShelfInteraction(item) {
+            if (!item) return; 
+
+            if (inventory.includes(item.id)) {
+                setStatus("You already grabbed this!");
+                return;
+            }
+
+            const isNeeded = shoppingList.find(listItem => listItem.id === item.id);
+            if (!isNeeded) {
+                setStatus("You don't need " + item.name + " on your list!");
+                return;
+            }
+
+            openModal(item, false);
+        }
+
+        function handleRegisterInteraction() {
+            if (inventory.length < shoppingList.length) {
+                setStatus("You haven't found everything on your list yet!");
+                return;
+            }
+
+            // Calculate Grand Total
+            let total = shoppingList.reduce((sum, item) => sum + item.currentPrice, 0);
+            
+            openModal({ name: "ALL ITEMS", emoji: "🛒", currentPrice: total }, true);
+        }
+
+        function openModal(itemData, isCheckout) {
+            currentTargetItem = itemData;
+            targetAmount = itemData.currentPrice; 
+            isCheckoutMode = isCheckout;
+            strikes = 0;
+            
+            clearTray();
+            document.getElementById('hint-text').innerText = "";
+            document.getElementById('reg-item').innerText = isCheckout ? "TOTAL BILL 🛒" : `GRAB: ${itemData.emoji} ${itemData.name}`;
+            document.getElementById('reg-total').innerText = formatMoney(itemData.currentPrice);
+            
+            document.getElementById('checkout-modal').style.display = "flex";
+        }
+
+        // Added closeModal function to allow backing out of a question
+        function closeModal() {
+            document.getElementById('checkout-modal').style.display = "none";
+        }
+
+        function addMoney(cents) {
+            trayAmount += cents;
+            document.getElementById('tray-area').innerHTML += getSingleMoneyVisual(cents);
+        }
+
+        function removeMoney(element, cents) {
+            trayAmount -= cents;
+            element.remove();
+        }
+
+        function clearTray() {
+            trayAmount = 0;
+            document.getElementById('tray-area').innerHTML = '';
+        }
+
+        function submitMoney() {
+            const hintText = document.getElementById('hint-text');
+
+            if (trayAmount === targetAmount) {
+                document.getElementById('checkout-modal').style.display = "none";
+                
+                // Track Stats
+                stats.correctPays++;
+                if (strikes === 0) stats.perfect1stTries++;
+                
+                // Fix: Only add to money handled when buying individual items to prevent double counting
+                if (!isCheckoutMode) {
+                    stats.totalMoneyHandled += targetAmount;
+                }
+                
+                if (isCheckoutMode) {
+                    stats.listsCompleted++;
+                    
+                    // Populate Win Screen Stats before showing
+                    let totalAttempts = stats.correctPays + stats.wrongPays;
+                    let acc = totalAttempts === 0 ? 0 : Math.round((stats.correctPays / totalAttempts) * 100);
+                    document.getElementById('win-stats-display').innerHTML = `
+                        <div class="win-stat-row"><span>Correct Pays:</span> <strong>${stats.correctPays}</strong></div>
+                        <div class="win-stat-row"><span>Accuracy:</span> <strong>${acc}%</strong></div>
+                        <div class="win-stat-row"><span>Perfect 1st Tries:</span> <strong>${stats.perfect1stTries}</strong></div>
+                        <div class="win-stat-row"><span>Lists Completed:</span> <strong>${stats.listsCompleted}</strong></div>
+                        <div class="win-stat-row"><span>Money Handled:</span> <strong>${formatMoney(stats.totalMoneyHandled)}</strong></div>
+                    `;
+                    
+                    document.getElementById('win-screen').style.display = "flex";
+                } else {
+                    inventory.push(currentTargetItem.id);
+                    setStatus(`Got the ${currentTargetItem.name}!`, "#2e7d32");
+                    updateListUI();
+                    drawMap();
+                    
+                    if (inventory.length === shoppingList.length) {
+                        setTimeout(() => setStatus("List complete! Head to the Register 🛒", "#1976D2"), 1500);
+                    }
+                }
+                updateStatsUI();
+                
+            } else {
+                strikes++;
+                stats.wrongPays++;
+                updateStatsUI();
+                
+                if (strikes >= 3) {
+                    hintText.innerText = "Let's clear the tray and try one more time! You can do it!";
+                    clearTray();
+                    strikes = 0; 
+                } else {
+                    if (trayAmount > targetAmount) {
+                        hintText.innerText = `Attempt ${strikes}/3: Oops, that's too much money!`;
+                    } else {
+                        hintText.innerText = `Attempt ${strikes}/3: You need some more money!`;
+                    }
+                }
+            }
+        }
+        
+        // Initialize stats on first load
+        updateStatsUI();
+    </script>
+</body>
+</html>
